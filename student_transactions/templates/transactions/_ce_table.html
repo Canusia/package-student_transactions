@@ -1,0 +1,40 @@
+{# student_transactions/student_transactions/templates/transactions/_ce_table.html #}
+{% load static %}
+
+<table id="{{ config.table_id }}" class="table table-striped responsive" style="width:100%">
+  <thead>
+    <tr>
+      {% for col in config.column_headers %}{{ col|safe }}{% endfor %}
+    </tr>
+  </thead>
+  {% if config.footer_search %}
+  <tfoot>
+    <tr>
+      {% for col in config.column_footers %}{{ col|safe }}{% endfor %}
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+
+<script src="{% static 'js/action_registry.js' %}"></script>
+<script src="{% static 'js/ce_transactions_table.js' %}"></script>
+<script>
+  jQuery(function ($) {
+    var opts = {{ config.opts_json|safe }};
+    {% if config.bulk_actions %}
+    opts.bulkActions = [
+      {% for slug, action in config.bulk_actions.items %}
+        {
+          slug: '{{ slug|escapejs }}',
+          label: '{{ action.label|escapejs }}',
+          icon: '{{ action.icon|default:"fas fa-edit"|escapejs }}',
+          btnClass: '{{ action.btn_class|default:"btn-primary"|escapejs }}',
+          confirm: {% if action.confirm %}'{{ action.confirm|escapejs }}'{% else %}null{% endif %},
+        },
+      {% endfor %}
+    ];
+    opts.bulkActionsUrl = '{{ config.bulk_actions_url|escapejs }}';
+    {% endif %}
+    initCeTransactionsTable('#{{ config.table_id }}', opts);
+  });
+</script>
