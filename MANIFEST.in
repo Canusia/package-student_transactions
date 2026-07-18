@@ -1,0 +1,4 @@
+include README.md
+recursive-include student_transactions/templates *
+recursive-include student_transactions/views *
+recursive-include student_transactions/migrations *

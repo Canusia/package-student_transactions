@@ -1,0 +1,105 @@
+<script>
+var TransactionForm = (function($) {
+    'use strict';
+
+    /**
+     * Show success message and close the modal
+     */
+    function showSuccessAndClose(message) {
+        swal({
+            title: 'Success',
+            text: message,
+            icon: 'success',
+            button: {
+                text: 'Okay',
+                closeModal: true
+            }
+        }).then(function() {
+            window.parent.closeTransactionModal();
+        });
+    }
+
+    /**
+     * Show error/warning message
+     */
+    function showError(message) {
+        swal("", message, "warning");
+    }
+
+    /**
+     * Handle form submission via AJAX
+     * @param {string} formSelector - jQuery selector for the form
+     * @param {string} submitUrl - URL to submit the form to
+     */
+    function initFormSubmit(formSelector, submitUrl) {
+        $(formSelector).on('submit', function(event) {
+            event.preventDefault();
+
+            var form = $(this).closest('form');
+            var formData = form.serialize();
+
+            $.blockUI();
+            $.post({
+                url: submitUrl,
+                data: formData,
+                dataType: 'json'
+            })
+            .done(function(response) {
+                $.unblockUI();
+                if (response.status === 'success') {
+                    showSuccessAndClose(response.message);
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function(xhr) {
+                $.unblockUI();
+                var message = 'An error occurred. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    message = xhr.responseJSON.message;
+                }
+                showError(message);
+            });
+        });
+    }
+
+    /**
+     * Initialize delete button functionality
+     * @param {string} deleteUrl - URL to call for deletion
+     */
+    function initDeleteButton(deleteUrl) {
+        $("input.delete").on("click", function() {
+            if (!confirm("Are you sure you want to permanently delete this record and everything associated with it?")) {
+                return;
+            }
+
+            $.blockUI();
+            $.ajax({
+                type: 'GET',
+                url: deleteUrl
+            })
+            .done(function(response) {
+                $.unblockUI();
+                showSuccessAndClose(response.message);
+            })
+            .fail(function(xhr) {
+                $.unblockUI();
+                var message = 'Failed to delete. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    message = xhr.responseJSON.message;
+                }
+                showError(message);
+            });
+        });
+    }
+
+    // Public API
+    return {
+        showSuccessAndClose: showSuccessAndClose,
+        showError: showError,
+        initFormSubmit: initFormSubmit,
+        initDeleteButton: initDeleteButton
+    };
+
+})(jQuery);
+</script>

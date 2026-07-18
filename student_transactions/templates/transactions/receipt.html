@@ -1,0 +1,112 @@
+{% load templatehelpers %}
+
+<!doctype html>
+<html lang="en" style="height: 100%;">
+
+<head>
+    <meta charset="utf-8">
+
+    {% load static %}
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
+        integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <title>{% block title %}Account Details{% endblock %}</title>
+</head>
+
+<body class="bg-white h-100">
+    <div class="container-fluid mt-2">
+
+        {{header|safe}}
+
+        <div class="row">
+            <div class="col-md-12 col-sm-12 mb-3">
+                <h4>Classes</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th width="30%">Term</th>
+                            <th width="50%">Teacher / Course</th>
+                            <th width="20%">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for regis in classes %}
+                            <tr>
+                                <td>{{regis.class_section.term}}</td>
+                                <td>
+                                    {{regis.class_section.teacher}}<br>
+                                    {{regis.class_section.course.name}} / ({{regis.class_section.course.credit_hours}} credits)<br>
+                                    <small>{{regis.class_section.period_time}}</small>
+                                </td>
+                                <td>{{regis.sexy_status}}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3">You do not have any classes in {{active_term}}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- end charges -->
+
+            <div class="col-md-6 col-sm-12">
+                <h4>Charges</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th width="30%">Posted On</th>
+                            <th width="50%">Description</th>
+                            <th width="20%">Charge</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for charge in charges %}
+                            <tr>
+                                <td>{{charge.created_on}}</td>
+                                <td>{{charge.description}}</td>
+                                <td>{{charge.format_amount}}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3">No charges found for the current active term {{active_term}}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- end charges -->
+
+            <div class="col-md-6 col-sm-12 mt-3">
+                <h4>Payments / Tuition Assistance(s) / Refund(s)</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th width="30%">Posted On</th>
+                            <th width="50%">Description</th>
+                            <th width="20%">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                            <tr>
+                                <td>{{payment.created_on}}</td>
+                                <td>{{payment.sexy_label}}</td>
+                                <td>{{payment.format_amount}}</td>
+                            </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3">No payments found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- end payments -->
+        </div>
+        {{footer|safe}}
+</body>
+</html>

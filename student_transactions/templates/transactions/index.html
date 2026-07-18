@@ -1,0 +1,138 @@
+{% extends "cis/logged-base.html" %}
+{% load templatehelpers %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .modal-dialog,
+    .modal-content {
+        height: 80%;
+    }
+    .modal-dialog {
+        max-width: 50%;
+    }
+    .modal-body {
+        max-height: calc(100vh - 65px);
+        overflow-y: none;
+        position: relative;
+    }
+    .modal-body iframe {
+        position: absolute;
+        height: 98%;
+        width: 97%;
+    }
+    .summary-card {
+        border-radius: 0.75rem;
+    }
+    .summary-card .icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .summary-card .icon-wrapper.debit {
+        background-color: #fce8e6;
+        color: #e74a3b;
+    }
+    .summary-card .icon-wrapper.credit {
+        background-color: #e6f4ea;
+        color: #1cc88a;
+    }
+    .summary-card .icon-wrapper.primary {
+        background-color: #e8eaf6;
+        color: #4e73df;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<main>
+    <div class="row">
+        <div class="col-sm-6 col-xs-12">
+            <h1 class="h3 mb-4 text-gray-800">{{ page_title }}</h1>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        {% include "cis/messages.html" with messages=messages %}
+
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#all">All {{ page_title }}</a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane active" id="all">
+                <div class="bg-white border border-top-0">
+                    <div class="col-12 pt-3 mb-3">
+                        <form class="filter form-inline mb-3">
+                            <div class="form-group mr-3">
+                                <label for="term_id" class="mr-2">Term:</label>
+                                <select name="term_id" id="term_id" class="form-control">
+                                    <option value="">All Terms</option>
+                                    {% for term in terms %}
+                                    <option value="{{ term.id }}">{{ term }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group mr-3">
+                                {% include 'snippets/campus.html' with campus=accessible_campuses default_campus=default_campus %}
+                            </div>
+                            <input type="hidden" name="label" id="label_filter" value="">
+                            <button type="button" id="clear_label_filter" class="btn btn-sm btn-outline-secondary d-none">
+                                <i class="fas fa-times"></i> Clear Filter
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Summary Blocks -->
+                    <div class="col-12 mb-3">
+                        <div class="row" id="summary-container">
+                            <div class="col-12 text-center py-3">
+                                <span class="text-muted">Loading summary...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 pt-3 mb-3">
+                        <table id="records_all" class="table table-striped responsive" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th data-data="created_on" data-name="created_on">Created On</th>
+                                    <th data-data="term.label" data-name="term.label" searchable="1">Term</th>
+                                    <th data-data="sexy_label" data-name="label" searchable="0">Type</th>
+                                    <th data-data="format_amount" data-name="amount" searchable="0">Amount</th>
+                                    <th data-data="description" data-name="description" searchable="1">Description</th>
+                                    <th data-data="student.user.last_name" data-name="student.user.last_name" searchable="1">Student</th>
+                                    <th data-data="student.user.psid" data-name="student.user.psid" searchable="1">Student ID</th>
+                                    <th data-data="student.highschool.name" data-name="student.highschool.name" searchable="1">High School</th>
+                                    <th data-data="id" data-name="id"><span class="sr-only">Actions</span></th>
+                                </tr>
+                            </thead>
+                            <tfoot>
+                                <th></th>
+                                <th>Term Code</th>
+                                <th></th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                                <th>Student Last Name</th>
+                                <th>Student ID</th>
+                                <th>High School</th>
+                                <th></th>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+{% include "transactions/includes/transaction_modal.html" %}
+{% include "transactions/includes/index_js.html" %}
+{% endblock %}

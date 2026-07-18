@@ -1,0 +1,42 @@
+{% extends "cis/logged-base-modal.html" %}
+{% load templatehelpers %}
+{% load crispy_forms_tags %}
+
+{% block body %}
+{% include "transactions/includes/transaction_js.html" %}
+
+<h3>{{ page_title }}</h3>
+
+<script>
+$(document).ready(function() {
+    function updateRegistrations(obj) {
+        if ($(obj).val() === 'class_charge') {
+            $("#id_registration").prop('disabled', false);
+        } else {
+            $("#id_registration").prop('disabled', 'disabled');
+        }
+    }
+
+    updateRegistrations($("#id_label"));
+
+    $(document).on("change", "#id_label", function() {
+        updateRegistrations($(this));
+    });
+
+    TransactionForm.initFormSubmit('form', "{% url 'student_transactions:manage_refund' student_id %}");
+
+    {% if record %}
+    TransactionForm.initDeleteButton("{% url 'student_transactions:delete' record.student.id record.id %}");
+    {% endif %}
+});
+</script>
+
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form | crispy }}
+    <input type="submit" class="btn btn-primary btn-sm" value="Save">
+    {% if record %}
+    <input type="button" value="Delete" class="btn btn-danger btn-sm delete float-right">
+    {% endif %}
+</form>
+{% endblock %}
