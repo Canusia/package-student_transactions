@@ -111,11 +111,79 @@
       });
   }
 
+  function csrfToken() {
+    // Mirrors action_registry.js's _csrfToken(): prefer window.CSRF_TOKEN
+    // (rendered by cis/logged-base.html), then the {% csrf_token %} input,
+    // then the cookie.
+    if (window.CSRF_TOKEN) { return window.CSRF_TOKEN; }
+    var input = document.querySelector('input[name=csrfmiddlewaretoken]');
+    if (input && input.value) { return input.value; }
+    var match = document.cookie.match(/(?:^|;\s*)[^=;\s]*csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  // Row actions (manage payment/scholarship/refund, download receipt) post
+  // action + student_id + transaction_id directly to the transaction
+  // dispatch endpoint (opts.bulkActionsUrl, same URL used for bulk actions
+  // -- do_bulk_action() forwards unrecognized slugs to
+  // transaction_actions.dispatch()). This is a different payload shape than
+  // window.ActionRegistry.doAction()'s ids[] convention (which the server
+  // handlers here don't read), so the POST is issued directly; the outcome
+  // handling below mirrors action_registry.js's _handleResponse for the
+  // outcomes these row-action handlers actually return ('open', 'alert',
+  // 'call').
+  function handleRowActionResponse(response) {
+    var outcome = response.outcome;
+    if (outcome === 'open') {
+      window.open(response.url, '_blank');
+    } else if (outcome === 'alert') {
+      var span = document.createElement('span');
+      span.innerHTML = response.message || '';
+      swal({ title: response.title || '', content: span, icon: response.status || 'info' });
+    } else if (outcome === 'call') {
+      var fn = window[response.fn];
+      if (typeof fn === 'function') { fn(response.args || {}); }
+    } else {
+      throw new Error('ce_transactions_table: unknown row-action outcome "' + outcome + '".');
+    }
+  }
+
+  function doRowAction(url, slug, row) {
+    $.ajax({
+      type: 'POST',
+      url: url,
+      data: {
+        action: slug,
+        student_id: row.student && row.student.id,
+        transaction_id: row.id,
+      },
+      headers: { 'X-CSRFToken': csrfToken() },
+      success: handleRowActionResponse,
+      error: function (xhr) {
+        var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'An unexpected error occurred.';
+        swal({ title: 'Error', text: msg, icon: 'error' });
+      },
+    });
+  }
+
   function actionRender(opts) {
     return function (_d, _t, row) {
-      var href = row.ce_url || ((opts.detailsPrefix || '') + row.id);
-      return "<a class='btn btn-sm btn-primary record-details' refresh-target='table' href='" +
-             href + "'>Edit</a>";
+      var actions = opts.rowActions || {};
+      var slugs = Object.keys(actions);
+      if (!slugs.length) return '';
+
+      var html = '<div class="dropdown">';
+      html += '<button class="btn btn-sm btn-secondary dropdown-toggle" type="button" ' +
+              'data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button>';
+      html += '<div class="dropdown-menu dropdown-menu-right">';
+      slugs.forEach(function (slug) {
+        var action = actions[slug];
+        html += '<a class="dropdown-item row-action" href="#" data-slug="' + slug + '">' +
+                '<i class="' + (action.icon || 'fas fa-cog') + ' text-dark"></i>&nbsp;' +
+                action.label + '</a>';
+      });
+      html += '</div></div>';
+      return html;
     };
   }
 
@@ -260,6 +328,15 @@
     }
 
     var table = $table.DataTable(dtConfig);
+
+    // Per-row Actions dropdown (built from opts.rowActions in actionRender
+    // above). Delegated on the table element so it survives DataTables redraws.
+    $table.on('click', 'a.row-action', function (e) {
+      e.preventDefault();
+      var $link = $(this);
+      var rowData = table.row($link.closest('tr')).data();
+      doRowAction(opts.bulkActionsUrl, $link.data('slug'), rowData);
+    });
 
     // Initial + filter-form-driven summary card refresh (mirrors the
     // pre-refactor `form.filter :input` change handler).

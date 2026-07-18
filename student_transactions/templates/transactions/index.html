@@ -100,32 +100,7 @@
                     </div>
 
                     <div class="col-12 pt-3 mb-3">
-                        <table id="records_all" class="table table-striped responsive" style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th data-data="created_on" data-name="created_on">Created On</th>
-                                    <th data-data="term.label" data-name="term.label" searchable="1">Term</th>
-                                    <th data-data="sexy_label" data-name="label" searchable="0">Type</th>
-                                    <th data-data="format_amount" data-name="amount" searchable="0">Amount</th>
-                                    <th data-data="description" data-name="description" searchable="1">Description</th>
-                                    <th data-data="student.user.last_name" data-name="student.user.last_name" searchable="1">Student</th>
-                                    <th data-data="student.user.psid" data-name="student.user.psid" searchable="1">Student ID</th>
-                                    <th data-data="student.highschool.name" data-name="student.highschool.name" searchable="1">High School</th>
-                                    <th data-data="id" data-name="id"><span class="sr-only">Actions</span></th>
-                                </tr>
-                            </thead>
-                            <tfoot>
-                                <th></th>
-                                <th>Term Code</th>
-                                <th></th>
-                                <th>Amount</th>
-                                <th>Description</th>
-                                <th>Student Last Name</th>
-                                <th>Student ID</th>
-                                <th>High School</th>
-                                <th></th>
-                            </tfoot>
-                        </table>
+                        {% include table.partial_template with config=table %}
                     </div>
                 </div>
             </div>
@@ -133,6 +108,4 @@
     </div>
 </main>
 
-{% include "transactions/includes/transaction_modal.html" %}
-{% include "transactions/includes/index_js.html" %}
 {% endblock %}

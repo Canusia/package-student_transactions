@@ -37,7 +37,7 @@ _PROFILES = {
 
 
 def build_config(*, variant, api_url, summary_api_url='', bulk_actions=None,
-                 bulk_actions_url=None):
+                 bulk_actions_url=None, row_actions=None):
     p = _PROFILES[variant]
     return build_table_config(
         profile=p,
@@ -53,5 +53,6 @@ def build_config(*, variant, api_url, summary_api_url='', bulk_actions=None,
             'columns':       p['columns'],
             'selectStyle':   p.get('select_style'),
             'defaultOrder':  p.get('default_order'),
+            'rowActions':    row_actions,
         },
     )

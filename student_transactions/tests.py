@@ -207,3 +207,48 @@ class DoBulkActionTests(TestCase):
         import json
         data = json.loads(resp.content)
         self.assertEqual(data['outcome'], 'open')
+
+
+class CeTransactionsIndexRenderTests(TestCase):
+    """Task 4: index view renders the config-driven table partial."""
+
+    @classmethod
+    def setUpClass(cls):
+        if _login_history_post_login is not None:
+            user_logged_in.disconnect(_login_history_post_login)
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        if _login_history_post_login is not None:
+            user_logged_in.connect(_login_history_post_login)
+
+    def setUp(self):
+        Group.objects.get_or_create(name='student')
+        User.objects.get_or_create(username='cron', defaults={'email': 'cron@x.com'})
+
+        self.ce = User.objects.create_user(
+            username=f'ce_{_sfx()}', email=f'ce_{_sfx()}@x.com', password='x')
+        self.ce.groups.add(Group.objects.get_or_create(name='ce')[0])
+        self.ce.campus = {'process_campus': []}
+        self.ce.save()
+
+    def test_index_renders_config_driven_table(self):
+        from django.urls import reverse
+
+        self.client.force_login(self.ce)
+        response = self.client.get(reverse('student_transactions:index'))
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('id="transactions_all"', content)
+        # Bulk-action affordance (Task 2's toolbar wiring, driven through
+        # config.bulk_actions in the _ce_table.html partial).
+        self.assertIn('initCeTransactionsTable', content)
+        self.assertIn('bulkActions', content)
+        # Row-action dropdown data wired from build_config(row_actions=...).
+        self.assertIn('rowActions', content)
+        # The old bespoke table + inline script are gone.
+        self.assertNotIn('id="records_all"', content)
+        self.assertNotIn('ajax-add_transaction', content)

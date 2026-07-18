@@ -11,6 +11,12 @@ from ..models import StudentTransaction
 from ..forms import (
     StudentChargeForm, StudentScholarshipForm, StudentPaymentForm, StudentRefundForm
 )
+from ..table_configs.resolve import resolve_table_config
+
+# Layout-agnostic default: works whether this module lives at
+# student_transactions.views.ce (installed) or
+# student_transactions.student_transactions.views.ce (editable submodule).
+_PKG_CE_TABLE = __package__.rsplit('.', 1)[0] + '.table_configs.ce_transactions'
 
 
 def _can_access_student_receipt(request, student):
@@ -411,21 +417,45 @@ def index(request):
     from cis.models.term import Term
     from cis.campus_gate import get_accessible_campuses
     from cis.utils import get_default_campus
+    # Lazy import: actions.py imports views.ce (to wrap manage_payment_action
+    # etc. as handlers), so importing it at module level here would create a
+    # circular import.
+    from ..actions import transaction_actions
 
     menu = draw_menu(cis_menu, 'students', 'transactions')
     template = 'transactions/index.html'
 
     terms = Term.objects.all().order_by('-code')
 
+    row_actions = {}
+    for group in transaction_actions.for_scope('detail', request.user).values():
+        for slug, action in group['actions'].items():
+            row_actions[slug] = {'label': action['label'], 'icon': action.get('icon')}
+
+    cfg_mod = resolve_table_config('ce_transactions_table', _PKG_CE_TABLE)
+    table = cfg_mod.build_config(
+        variant='ce_index',
+        api_url='/ce/student_transactions/api/transactions/?format=datatables',
+        summary_api_url='/ce/student_transactions/api/summary/',
+        bulk_actions={
+            'delete_transactions': {
+                'label': 'Delete Selected', 'icon': 'fas fa-trash',
+                'btn_class': 'btn-danger',
+                'confirm': 'Delete selected transaction(s)? This cannot be undone.',
+            },
+        },
+        bulk_actions_url=reverse('student_transactions:do_bulk_action'),
+        row_actions=row_actions,
+    )
+
     return render(
         request,
         template, {
             'menu': menu,
             'page_title': 'Student Transactions',
-            'api_url': '/ce/student_transactions/api/transactions/?format=datatables',
-            'summary_api_url': '/ce/student_transactions/api/summary/',
             'terms': terms,
             'accessible_campuses': get_accessible_campuses(request.user),
             'default_campus': get_default_campus(request.user),
+            'table': table,
         }
     )
