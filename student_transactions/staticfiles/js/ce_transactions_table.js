@@ -8,7 +8,7 @@
  * profiles. Column keys are 'txn.*'.
  *
  * Carries over the summary-card behavior (renderSummary + summaryApiUrl
- * fetch + footer-search wiring) previously inlined in
+ * fetch + footer-search wiring) previously inlined in the now-deleted
  * templates/transactions/includes/index_js.html.
  *
  * XSS trust boundary: column renderers concatenate fields from the
@@ -375,6 +375,18 @@
       sel.deselect();
       table.ajax.reload(null, false);
       loadSummary(opts);
+    };
+
+    // ActionRegistry calls this after a bulk action completes (outcome:'call'),
+    // mirroring sections_table.js / support_docs_table.js's onBulkActionComplete.
+    window.onBulkActionComplete = function (args) {
+      $('#modal-bulk_actions').modal('hide');
+      window.refreshTable();
+      if (args && args.message) {
+        var span = document.createElement('span');
+        span.innerHTML = args.message;
+        swal({ title: args.title || 'Done', content: span, icon: args.status || 'success' });
+      }
     };
     // Back-compat: pre-refactor templates assigned `table = $(...).DataTable()`
     // so main.js's modal close handler could call `window.table.ajax.reload`.

@@ -273,7 +273,10 @@ def _open_manage_url(request, manage_url_name, edit_url_name):
     """Build an 'open' outcome JSON for the given row action's manage/edit view.
 
     Reads student_id/transaction_id from POST (falling back to GET), and picks
-    the edit-url variant when a transaction_id is present.
+    the edit-url variant when a transaction_id is present. The 'open' outcome
+    opens the manage/receipt view in a new browser tab (see
+    ce_transactions_table.js's handleRowActionResponse, which calls
+    window.open(url, '_blank')) -- not an iframe modal.
     """
     student_id = request.POST.get('student_id') or request.GET.get('student_id')
     transaction_id = request.POST.get('transaction_id') or request.GET.get('transaction_id')
@@ -307,7 +310,7 @@ def manage_scholarship_action(request):
 
 
 def manage_refund_action(request):
-    return _open_manage_url(request, 'manage_refund', 'manage_refund')
+    return _open_manage_url(request, 'manage_refund', 'edit_refund')
 
 
 def download_receipt_action(request):

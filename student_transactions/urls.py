@@ -72,6 +72,11 @@ urlpatterns = [
         name='edit_scholarship'
     ),
     path(
+        'transactions/manage_refund/<uuid:student_id>/<uuid:transaction_id>/',
+        user_passes_test(user_has_cis_role, login_url='/')(manage_refund),
+        name='edit_refund'
+    ),
+    path(
         'transactions/manage_payment/<uuid:student_id>/',
         user_passes_test(user_has_cis_role, login_url='/')(manage_payment),
         name='manage_payment'

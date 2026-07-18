@@ -192,6 +192,29 @@ class DoBulkActionTests(TestCase):
         data = json.loads(resp.content)
         self.assertEqual(data['outcome'], 'alert')
 
+    def test_manage_refund_action_with_transaction_id_builds_edit_url(self):
+        """Regression for the refund row action's NoReverseMatch: the
+        dispatched handler must reverse a two-arg (student_id,
+        transaction_id) edit URL, not the single-arg 'manage_refund' route.
+        """
+        from .actions import transaction_actions
+
+        req = RequestFactory().post('/ce/student_transactions/transactions/bulk-action/', {
+            'action': 'manage_refund',
+            'student_id': str(self.txn_a.student.id),
+            'transaction_id': str(self.txn_a.id),
+        })
+        req.user = self.ce
+
+        resp = transaction_actions.dispatch(req, 'manage_refund')
+
+        self.assertEqual(resp.status_code, 200)
+        import json
+        data = json.loads(resp.content)
+        self.assertEqual(data['outcome'], 'open')
+        self.assertIn(str(self.txn_a.student.id), data['url'])
+        self.assertIn(str(self.txn_a.id), data['url'])
+
     def test_do_bulk_action_dispatches_row_action_slugs(self):
         from .views.ce import do_bulk_action
 

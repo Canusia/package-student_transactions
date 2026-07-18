@@ -2,7 +2,7 @@
 
 Registers the row-level (scope=['detail']) actions used by the CE
 transactions DataTable's Actions dropdown. Each handler opens the existing
-manage/receipt view in the modal-iframe via the 'open' outcome, mirroring
+manage/receipt view in a new browser tab via the 'open' outcome, mirroring
 cis.actions.term / cis.views.student's download_student_pdf pattern.
 """
 from .action_registry import ActionRegistry
