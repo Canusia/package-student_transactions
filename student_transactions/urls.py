@@ -17,7 +17,8 @@ from .views.ce import (
     manage_payment,
     delete,
     download_receipt_pdf,
-    transaction_summary
+    transaction_summary,
+    do_bulk_action,
 )
 
 app_name = 'student_transactions'
@@ -94,5 +95,10 @@ urlpatterns = [
         'transactions/delete/<uuid:student_id>/<uuid:transaction_id>/',
         user_passes_test(user_has_cis_role, login_url='/')(delete),
         name='delete'
+    ),
+    path(
+        'transactions/bulk-action/',
+        user_passes_test(user_has_cis_role, login_url='/')(do_bulk_action),
+        name='do_bulk_action'
     ),
 ]

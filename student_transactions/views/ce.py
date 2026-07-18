@@ -1,7 +1,9 @@
 from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse, HttpResponse
+from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
 
+from cis.campus_gate import scope_records_by_student_campus
 from cis.menu import cis_menu, draw_menu
 from cis.models.student import Student
 
@@ -259,6 +261,94 @@ def manage_debit(request, student_id, transaction_id='-1'):
             'transaction_id': transaction_id,
         }
     )
+
+
+def _open_manage_url(request, manage_url_name, edit_url_name):
+    """Build an 'open' outcome JSON for the given row action's manage/edit view.
+
+    Reads student_id/transaction_id from POST (falling back to GET), and picks
+    the edit-url variant when a transaction_id is present.
+    """
+    student_id = request.POST.get('student_id') or request.GET.get('student_id')
+    transaction_id = request.POST.get('transaction_id') or request.GET.get('transaction_id')
+
+    if not student_id:
+        return JsonResponse({
+            'outcome': 'alert',
+            'status': 'error',
+            'title': 'Error',
+            'message': 'No student selected.',
+        }, status=400)
+
+    if transaction_id and transaction_id != '-1':
+        url = reverse(
+            f'student_transactions:{edit_url_name}',
+            kwargs={'student_id': student_id, 'transaction_id': transaction_id})
+    else:
+        url = reverse(
+            f'student_transactions:{manage_url_name}',
+            kwargs={'student_id': student_id})
+
+    return JsonResponse({'outcome': 'open', 'url': url})
+
+
+def manage_payment_action(request):
+    return _open_manage_url(request, 'manage_payment', 'edit_payment')
+
+
+def manage_scholarship_action(request):
+    return _open_manage_url(request, 'manage_scholarship', 'edit_scholarship')
+
+
+def manage_refund_action(request):
+    return _open_manage_url(request, 'manage_refund', 'manage_refund')
+
+
+def download_receipt_action(request):
+    student_id = request.POST.get('student_id') or request.GET.get('student_id')
+    if not student_id:
+        return JsonResponse({
+            'outcome': 'alert',
+            'status': 'error',
+            'title': 'Error',
+            'message': 'No student selected.',
+        }, status=400)
+
+    url = reverse('student_transactions:download_receipt_pdf', kwargs={'student_id': student_id})
+    return JsonResponse({'outcome': 'open', 'url': url})
+
+
+def do_bulk_action(request):
+    from ..actions import transaction_actions
+
+    action = request.POST.get('action') or request.GET.get('action')
+
+    if action == 'delete_transactions':
+        ids = request.POST.getlist('ids[]')
+        qs = scope_records_by_student_campus(
+            StudentTransaction.objects.filter(pk__in=ids), request.user)
+        deleted, failed = 0, 0
+        for txn in qs:
+            try:
+                txn.delete()
+                deleted += 1
+            except Exception:
+                failed += 1
+        msg = f'Deleted {deleted} transaction(s).'
+        if failed:
+            msg += f' {failed} could not be deleted.'
+        return JsonResponse({
+            'outcome': 'call',
+            'fn': 'onBulkActionComplete',
+            'args': {
+                'title': 'Delete Transactions',
+                'message': msg,
+                'status': 'success' if not failed else 'warning',
+            },
+        })
+
+    return transaction_actions.dispatch(request, action)
+do_bulk_action.login_required = True
 
 
 def transaction_summary(request):
