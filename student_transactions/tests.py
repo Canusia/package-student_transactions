@@ -88,8 +88,8 @@ class DoBulkActionTests(TestCase):
         self.ce = User.objects.create_user(
             username=f'ce_{_sfx()}', email=f'ce_{_sfx()}@x.com', password='x')
         self.ce.groups.add(Group.objects.get_or_create(name='ce')[0])
-        self.ce.campus = {'process_campus': [str(self.campus_a.id)]}
         self.ce.save()
+        self.ce.set_process_campuses([str(self.campus_a.id)])
 
     def _transaction(self, section):
         from cis.models.section import StudentRegistration
@@ -254,8 +254,8 @@ class CeTransactionsIndexRenderTests(TestCase):
         self.ce = User.objects.create_user(
             username=f'ce_{_sfx()}', email=f'ce_{_sfx()}@x.com', password='x')
         self.ce.groups.add(Group.objects.get_or_create(name='ce')[0])
-        self.ce.campus = {'process_campus': []}
         self.ce.save()
+        self.ce.set_process_campuses([])
 
     def test_index_renders_config_driven_table(self):
         from django.urls import reverse
