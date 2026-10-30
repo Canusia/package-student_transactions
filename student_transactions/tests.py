@@ -275,3 +275,85 @@ class CeTransactionsIndexRenderTests(TestCase):
         # The old bespoke table + inline script are gone.
         self.assertNotIn('id="records_all"', content)
         self.assertNotIn('ajax-add_transaction', content)
+
+
+class ChargeTermTests(TestCase):
+    """A class charge lands on the section's billing term (registration-term
+    removal, option B): the parent by default, a sub-term that bills
+    separately on itself."""
+
+    @classmethod
+    def setUpClass(cls):
+        if _login_history_post_login is not None:
+            user_logged_in.disconnect(_login_history_post_login)
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        if _login_history_post_login is not None:
+            user_logged_in.connect(_login_history_post_login)
+
+    def setUp(self):
+        from cis.models.course import Cohort, Course
+        from cis.models.highschool import HighSchool
+        from cis.models.settings import Setting
+        from cis.models.student import Student
+        from cis.models.term import AcademicYear, Term
+        from cis.settings.registration_charges import registration_charges
+
+        Group.objects.get_or_create(name='student')
+        User.objects.get_or_create(username='cron', defaults={'email': 'cron@x.com'})
+        Setting.objects.update_or_create(
+            key=registration_charges.key,
+            defaults={'value': {
+                'is_active': 'Yes',
+                'hs_pay_type': 'class_highschool',
+                'charge_trigger': ['registered'],
+                'charge_remove_trigger': ['drop'],
+            }},
+        )
+
+        ay = AcademicYear.objects.create(name=f'AY-{_sfx()}')
+        self.P = Term.objects.create(academic_year=ay, code='300', label='Fall Quarter')
+        self.A = Term.objects.create(
+            academic_year=ay, code='290', label='Fall Semester', parent=self.P)
+        self.C = Term.objects.create(
+            academic_year=ay, code='270', label='Fall Summer', parent=self.P)
+        self.hs = HighSchool.objects.create(
+            name=f'HS-{_sfx()}', hs_pay_type='Student Pay')
+        self.course = Course.objects.create(
+            catalog_number='101', title='Intro',
+            cohort=Cohort.objects.create(name=f'Co-{_sfx()}', designator='CO'))
+        u = User.objects.create_user(
+            username=f'stu_{_sfx()}', email=f'stu_{_sfx()}@x.com', password='x')
+        self.student = Student.objects.create(user=u, highschool=self.hs)
+
+    def _charge_after_registering(self, term):
+        from cis.models.section import ClassSection, StudentRegistration
+        from .models import StudentTransaction
+
+        section = ClassSection.objects.create(
+            class_number=f'CN{_sfx()}', section_number='01', term=term,
+            course=self.course, highschool=self.hs, tuition=300.0, lab_fees=0.0)
+        reg = StudentRegistration.objects.create(
+            student=self.student, class_section=section, highschool=self.hs,
+            status='applied', pay_type='', non_student_pay_amount=0,
+            status_changed_on={})
+        self.assertFalse(StudentTransaction.objects.filter(
+            meta__registration=str(reg.id)).exists())
+        reg.status = 'registered'
+        reg.save()
+        return StudentTransaction.objects.get(
+            meta__registration=str(reg.id), label='class_charge')
+
+    def test_charge_lands_on_parent_by_default(self):
+        self.assertEqual(self._charge_after_registering(self.A).term, self.P)
+
+    def test_charge_lands_on_separately_billed_sub_term(self):
+        self.C.bills_with_parent = False
+        self.C.save()
+        self.assertEqual(self._charge_after_registering(self.C).term, self.C)
+
+    def test_charge_on_a_term_without_parent(self):
+        self.assertEqual(self._charge_after_registering(self.P).term, self.P)

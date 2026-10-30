@@ -17,6 +17,13 @@ from .models import StudentTransaction
 
 from cis.middleware import current_request
 
+
+def _charge_term(section):
+    """The term a section's charges land on: its billing term (the parent
+    unless the sub-term bills separately). Falls back to registration_term on
+    a cis that predates ClassSection.billing_term."""
+    return getattr(section, 'billing_term', None) or section.registration_term
+
 @receiver(post_save, sender=StudentTransaction)
 def added_new_transaction(sender, instance, created, **kwargs):
     student = instance.student
@@ -125,7 +132,7 @@ def manage_charges(sender, instance, **kwargs):
                         student=instance.student,
                         description=f"Student Tuition for {instance.class_section.course} / {instance.class_section.class_number}",
                         amount=cost,
-                        term=instance.class_section.registration_term,
+                        term=_charge_term(instance.class_section),
                         t_type='debit',
                         label='class_charge',
                         meta={
@@ -140,7 +147,7 @@ def manage_charges(sender, instance, **kwargs):
                             student=instance.student,
                             description=f"School Cost for {instance.class_section.course} / {instance.class_section.class_number}",
                             amount=cost,
-                            term=instance.class_section.registration_term,
+                            term=_charge_term(instance.class_section),
                             t_type='debit',
                             label='school_charge',
                             meta={
@@ -178,7 +185,7 @@ def manage_charges(sender, instance, **kwargs):
                         student=instance.student,
                         description=f"School Cost for {instance.class_section.course} / {instance.class_section.class_number}",
                         amount=cost,
-                        term=instance.class_section.registration_term,
+                        term=_charge_term(instance.class_section),
                         t_type='debit',
                         label='school_charge',
                         meta={
