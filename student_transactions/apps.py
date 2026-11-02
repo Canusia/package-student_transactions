@@ -7,6 +7,7 @@ class StudentTransactionsConfig(AppConfig):
 
     def ready(self):
         from . import signals  # noqa: F401
+        from . import menu  # noqa: F401  sidebar items (cis.menu_registry)
 
 
 class DevStudentTransactionsConfig(AppConfig):
@@ -15,3 +16,4 @@ class DevStudentTransactionsConfig(AppConfig):
 
     def ready(self):
         from . import signals  # noqa: F401
+        from . import menu  # noqa: F401  sidebar items (cis.menu_registry)
